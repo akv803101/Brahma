@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brahma — Churn Intelligence Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="banner">
+            <div class="banner-content">
+                <h1>🧠 Brahma — Churn Intelligence</h1>
+                <p class="subtitle">Machine Learning Pipeline Results & Model Performance</p>
+                <p class="timestamp" id="timestamp"></p>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="tabs">
+            <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
+            <button class="tab-btn" onclick="switchTab('analysis')">Analysis</button>
+            <button class="tab-btn" onclick="switchTab('evaluation')">Evaluation</button>
+            <button class="tab-btn" onclick="switchTab('ensembling')">Ensembling</button>
+        </nav>
+
+        <!-- Tab 1: Overview -->
+        <section id="overview" class="tab-content active">
+            <div class="section-header">
+                <h2>Executive Summary</h2>
+            </div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="total-records">—</div>
+                    <div class="metric-label">Total Records Analyzed</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="churn-rate">—</div>
+                    <div class="metric-label">Churn Rate</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="best-model">—</div>
+                    <div class="metric-label">Best Model</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="roc-auc">—</div>
+                    <div class="metric-label">ROC-AUC Score</div>
+                </div>
+            </div>
+
+            <div class="leaderboard-section">
+                <h3>Model Leaderboard</h3>
+                <div id="leaderboard" class="leaderboard-table"></div>
+            </div>
+        </section>
+
+        <!-- Tab 2: Analysis -->
+        <section id="analysis" class="tab-content">
+            <div class="section-header">
+                <h2>Exploratory Data Analysis</h2>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>Feature Importance (Top 20)</h3>
+                    <img src="../outputs/charts/eda/feature_importance_top20.png" alt="Feature Importance" class="chart-image">
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 3: Evaluation -->
+        <section id="evaluation" class="tab-content">
+            <div class="section-header">
+                <h2>Model Evaluation & Diagnostics</h2>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>ROC Curve</h3>
+                    <img src="../outputs/charts/evaluation/roc_curve.png" alt="ROC Curve" class="chart-image">
+                </div>
+                <div class="chart-card">
+                    <h3>Confusion Matrix</h3>
+                    <img src="../outputs/charts/evaluation/confusion_matrix.png" alt="Confusion Matrix" class="chart-image">
+                </div>
+                <div class="chart-card">
+                    <h3>Precision-Recall Curve</h3>
+                    <img src="../outputs/charts/evaluation/precision_recall_curve.png" alt="Precision-Recall" class="chart-image">
+                </div>
+                <div class="chart-card">
+                    <h3>Score Distribution</h3>
+                    <img src="../outputs/charts/evaluation/score_distribution.png" alt="Score Distribution" class="chart-image">
+                </div>
+                <div class="chart-card">
+                    <h3>Calibration Curve</h3>
+                    <img src="../outputs/charts/evaluation/calibration_curve.png" alt="Calibration Curve" class="chart-image">
+                </div>
+                <div class="chart-card">
+                    <h3>SHAP Feature Analysis</h3>
+                    <img src="../outputs/charts/evaluation/shap_beeswarm.png" alt="SHAP Analysis" class="chart-image">
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 4: Ensembling -->
+        <section id="ensembling" class="tab-content">
+            <div class="section-header">
+                <h2>Ensemble Model Comparison</h2>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-card full-width">
+                    <h3>Ensemble Strategy Comparison</h3>
+                    <img src="../outputs/charts/ensembling/ensemble_comparison.png" alt="Ensemble Comparison" class="chart-image">
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Generated by <strong>Brahma</strong> — The Creator Intelligence</p>
+            <p class="footer-note">This dashboard is auto-generated from the ML pipeline. Last updated: <span id="footer-time"></span></p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
