@@ -22,9 +22,14 @@ STAGE_SCRIPTS = [
 class BrahmaEngine:
 
     def __init__(self):
-        self.client = anthropic.Anthropic(
-            api_key=os.environ.get("ANTHROPIC_API_KEY", "")
-        )
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("anthropic_api_key")
+        if not api_key:
+            raise EnvironmentError(
+                "ANTHROPIC_API_KEY is not set. "
+                "Go to Streamlit Cloud → your app → Settings → Secrets and add:\n"
+                "[secrets]\nANTHROPIC_API_KEY = 'sk-ant-...'"
+            )
+        self.client = anthropic.Anthropic(api_key=api_key)
         self.system_prompt = self._build_system_prompt()
 
     # ── Load all .md files into a single system prompt ──────────────────────

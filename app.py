@@ -522,7 +522,11 @@ if run_clicked and ready:
     output_area = st.empty()
     full_response = ""
 
-    engine = BrahmaEngine()
+    try:
+        engine = BrahmaEngine()
+    except EnvironmentError as e:
+        st.error(f"**Missing API Key**\n\n{e}")
+        st.stop()
 
     with st.spinner(""):
         for chunk, stage_idx in engine.run(goal, connection_config, masked_config):
