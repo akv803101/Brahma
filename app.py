@@ -18,19 +18,24 @@ st.markdown("""
         font-family: 'IBM Plex Sans', sans-serif;
     }
 
+    /* Light page background */
     .stApp {
-        background: #0a0a0a;
-        color: #e8e8e8;
+        background: #f5f5f0;
+        color: #1a1a1a;
     }
 
+    /* Black header banner */
     .main-header {
         text-align: center;
-        padding: 48px 0 32px 0;
+        padding: 48px 0 36px 0;
+        background: #0a0a0a;
+        margin: -1rem -1rem 0 -1rem;
+        border-bottom: 3px solid #f59e0b;
     }
 
     .brahma-title {
         font-family: 'IBM Plex Mono', monospace;
-        font-size: 52px;
+        font-size: 56px;
         font-weight: 600;
         color: #ffffff;
         letter-spacing: 0.08em;
@@ -39,16 +44,16 @@ st.markdown("""
 
     .brahma-sub {
         font-family: 'IBM Plex Mono', monospace;
-        font-size: 14px;
-        color: #666;
-        letter-spacing: 0.15em;
-        margin-top: 8px;
+        font-size: 13px;
+        color: #f59e0b;
+        letter-spacing: 0.25em;
+        margin-top: 10px;
     }
 
     .brahma-tagline {
-        font-size: 16px;
+        font-size: 15px;
         color: #888;
-        margin-top: 16px;
+        margin-top: 14px;
         font-style: italic;
     }
 
@@ -56,124 +61,159 @@ st.markdown("""
         font-family: 'IBM Plex Mono', monospace;
         font-size: 11px;
         font-weight: 600;
-        color: #555;
+        color: #0a0a0a;
         letter-spacing: 0.2em;
         text-transform: uppercase;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
         margin-top: 28px;
+        border-left: 3px solid #f59e0b;
+        padding-left: 8px;
     }
 
     .credential-warning {
-        background: #1a1200;
-        border: 1px solid #3d2e00;
+        background: #fffbea;
+        border: 1px solid #f59e0b;
         border-radius: 6px;
         padding: 12px 16px;
         font-size: 13px;
-        color: #888;
+        color: #555;
         margin-bottom: 16px;
         font-family: 'IBM Plex Mono', monospace;
     }
 
     .stage-badge {
         display: inline-block;
-        background: #111;
-        border: 1px solid #333;
+        background: #ffffff;
+        border: 1px solid #d1d5db;
         border-radius: 4px;
         padding: 3px 10px;
         font-family: 'IBM Plex Mono', monospace;
         font-size: 12px;
-        color: #888;
+        color: #6b7280;
         margin: 4px 4px 4px 0;
     }
 
     .stage-badge.active {
+        background: #fffbea;
         border-color: #f59e0b;
-        color: #f59e0b;
+        color: #b45309;
+        font-weight: 600;
     }
 
     .stage-badge.done {
+        background: #f0fdf4;
         border-color: #22c55e;
-        color: #22c55e;
+        color: #15803d;
     }
 
+    /* Visible light inputs */
     div[data-testid="stTextInput"] input,
     div[data-testid="stTextArea"] textarea,
     div[data-testid="stSelectbox"] select {
-        background: #111 !important;
-        border: 1px solid #2a2a2a !important;
-        color: #e8e8e8 !important;
+        background: #ffffff !important;
+        border: 1px solid #d1d5db !important;
+        color: #1a1a1a !important;
         font-family: 'IBM Plex Mono', monospace !important;
         font-size: 13px !important;
         border-radius: 6px !important;
+    }
+
+    div[data-testid="stTextInput"] input:focus,
+    div[data-testid="stTextArea"] textarea:focus {
+        border-color: #0a0a0a !important;
+        box-shadow: 0 0 0 2px rgba(10,10,10,0.1) !important;
     }
 
     div[data-testid="stTextInput"] input[type="password"] {
         letter-spacing: 0.2em;
     }
 
+    /* Labels */
+    label, .stTextInput label, .stTextArea label, .stSelectbox label {
+        color: #1a1a1a !important;
+        font-weight: 500 !important;
+    }
+
+    /* CTA button — amber on black */
     .stButton > button {
-        background: #f59e0b !important;
-        color: #000 !important;
-        border: none !important;
+        background: #0a0a0a !important;
+        color: #f59e0b !important;
+        border: 2px solid #0a0a0a !important;
         font-family: 'IBM Plex Mono', monospace !important;
         font-weight: 600 !important;
-        letter-spacing: 0.1em !important;
+        letter-spacing: 0.12em !important;
         font-size: 14px !important;
         padding: 12px 32px !important;
         border-radius: 6px !important;
         width: 100% !important;
+        transition: all 0.2s ease !important;
     }
 
     .stButton > button:hover {
-        background: #d97706 !important;
+        background: #f59e0b !important;
+        color: #0a0a0a !important;
+        border-color: #f59e0b !important;
     }
 
+    /* Output block */
     .output-block {
-        background: #0f0f0f;
-        border: 1px solid #1f1f1f;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-left: 4px solid #0a0a0a;
         border-radius: 8px;
         padding: 20px 24px;
         font-family: 'IBM Plex Mono', monospace;
         font-size: 13px;
-        color: #ccc;
+        color: #1a1a1a;
         line-height: 1.8;
         margin-top: 16px;
         white-space: pre-wrap;
     }
 
     .pipeline-banner {
-        background: #0d1a0d;
-        border: 1px solid #1a3a1a;
+        background: #f0fdf4;
+        border: 1px solid #22c55e;
         border-radius: 8px;
         padding: 20px 24px;
         font-family: 'IBM Plex Mono', monospace;
         font-size: 13px;
-        color: #22c55e;
+        color: #15803d;
         margin-top: 16px;
     }
 
     .divider {
         border: none;
-        border-top: 1px solid #1a1a1a;
+        border-top: 1px solid #e5e7eb;
         margin: 32px 0;
     }
 
     .source-chip {
         display: inline-block;
-        background: #111;
-        border: 1px solid #222;
+        background: #ffffff;
+        border: 1px solid #d1d5db;
         border-radius: 20px;
         padding: 4px 12px;
         font-size: 12px;
-        color: #666;
+        color: #374151;
         margin: 3px;
         font-family: 'IBM Plex Mono', monospace;
     }
 
     [data-testid="stFileUploader"] {
-        background: #111 !important;
-        border: 1px dashed #333 !important;
+        background: #ffffff !important;
+        border: 1.5px dashed #9ca3af !important;
         border-radius: 8px !important;
+    }
+
+    /* Download buttons */
+    [data-testid="stDownloadButton"] button {
+        background: #ffffff !important;
+        color: #1a1a1a !important;
+        border: 1px solid #d1d5db !important;
+        font-family: 'IBM Plex Mono', monospace !important;
+        font-size: 12px !important;
+        border-radius: 4px !important;
+        width: 100% !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -557,7 +597,7 @@ if run_clicked and ready:
 # ── FOOTER ────────────────────────────────────────────────────────────────────
 st.markdown('<hr class="divider">', unsafe_allow_html=True)
 st.markdown("""
-<div style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#333; padding-bottom:40px;">
+<div style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#6b7280; padding-bottom:40px;">
     BRAHMA © 2026 · IntelliBridge · Built by Aakash Verma
 </div>
 """, unsafe_allow_html=True)
