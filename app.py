@@ -529,14 +529,27 @@ if run_clicked and ready:
         st.stop()
 
     with st.spinner(""):
-        for chunk, stage_idx in engine.run(goal, connection_config, masked_config):
-            full_response += chunk
-            output_area.markdown(
-                f'<div class="output-block">{full_response}</div>',
-                unsafe_allow_html=True
-            )
-            if stage_idx >= 0:
-                render_stages(stage_idx)
+        try:
+            for chunk, stage_idx in engine.run(goal, connection_config, masked_config):
+                full_response += chunk
+                output_area.markdown(
+                    f'<div class="output-block">{full_response}</div>',
+                    unsafe_allow_html=True
+                )
+                if stage_idx >= 0:
+                    render_stages(stage_idx)
+        except Exception as e:
+            err = str(e)
+            if "auth" in err.lower() or "401" in err or "api_key" in err.lower():
+                st.error(
+                    "**Invalid API Key** — Anthropic rejected the key.\n\n"
+                    "Go to Streamlit Cloud → your app → **Settings → Secrets** and verify:\n"
+                    "```\nANTHROPIC_API_KEY = \"sk-ant-...\"\n```\n"
+                    "Make sure there are no extra spaces or quotes around the key."
+                )
+            else:
+                st.error(f"**Pipeline error:** {err}")
+            st.stop()
 
     render_stages(len(stages))
 
