@@ -2,13 +2,40 @@ import streamlit as st
 import os
 import tempfile
 from brahma_engine import BrahmaEngine
+from brahma_memory import BrahmaMemory
 
 st.set_page_config(
     page_title="Brahma — The Creator Intelligence",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
+
+# ── MEMORY SIDEBAR ────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("### ⚡ Brahma Memory")
+    st.caption("Each completed pipeline run is remembered here. Brahma uses this history to make smarter decisions over time.")
+    try:
+        _mem = BrahmaMemory()
+        _runs = _mem.get_recent_runs(limit=20)
+        if not _runs:
+            st.info("No runs yet. Complete your first pipeline to build memory.")
+        else:
+            st.markdown(f"**{len(_runs)} run(s) stored**")
+            for r in _runs:
+                date = r["timestamp"][:10]
+                model = r["best_model"] or "—"
+                auc = r["metrics"].get("auc_val", "")
+                auc_str = f" · AUC {auc}" if auc else ""
+                with st.expander(f"{date} — {r['goal'][:40]}{'…' if len(r['goal']) > 40 else ''}"):
+                    st.markdown(f"**Goal:** {r['goal']}")
+                    st.markdown(f"**Source:** {r['source_type']}")
+                    st.markdown(f"**Best model:** {model}{auc_str}")
+                    if r["metrics"]:
+                        for k, v in r["metrics"].items():
+                            st.markdown(f"- {k}: `{v}`")
+    except Exception as _e:
+        st.warning(f"Memory unavailable: {_e}")
 
 st.markdown("""
 <style>

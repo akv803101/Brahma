@@ -2,6 +2,7 @@ import os
 import json
 import importlib.util
 import anthropic
+from brahma_memory import BrahmaMemory
 
 SKILLS_DIR  = "skills"
 AGENTS_DIR  = "agents"
@@ -30,7 +31,8 @@ class BrahmaEngine:
                 "[secrets]\nANTHROPIC_API_KEY = 'sk-ant-...'"
             )
         self.client = anthropic.Anthropic(api_key=api_key)
-        self.system_prompt = self._build_system_prompt()
+        self.memory = BrahmaMemory()
+        self._base_system_prompt = self._build_system_prompt()
 
     # ── Load all .md files into a single system prompt ──────────────────────
     def _load_md(self, path: str) -> str:
@@ -330,9 +332,17 @@ Do not use terminal-style box drawing characters — use plain text headers inst
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(conn_code_tagged + content)
 
+    # ── Build system prompt augmented with memory ────────────────────────────
+    def _build_memory_prompt(self, goal: str) -> str:
+        memory_context = self.memory.format_for_prompt(goal)
+        if memory_context:
+            return memory_context + "\n\n---\n\n" + self._base_system_prompt
+        return self._base_system_prompt
+
     # ── Main run method — streams to Streamlit ───────────────────────────────
     def run(self, goal: str, connection_config: dict, masked_config: dict):
         source_description = self._describe_source(connection_config, masked_config)
+        source_type = connection_config.get("type", "unknown")
 
         # Inject real connection code into stage scripts
         self._inject_connection(connection_config)
@@ -345,11 +355,12 @@ Do not use terminal-style box drawing characters — use plain text headers inst
             f"with a header like 'STAGE 3 — EDA COMPLETE' before moving to the next."
         )
 
-        # Phase 1 — Brahma's understanding + confirmation (streamed)
+        # Phase 1 — Brahma's understanding + confirmation (streamed, memory-augmented)
+        system_prompt = self._build_memory_prompt(goal)
         with self.client.messages.stream(
             model="claude-sonnet-4-6",
             max_tokens=2000,
-            system=self.system_prompt,
+            system=system_prompt,
             messages=[{"role": "user", "content": user_message}]
         ) as stream:
             for text in stream.text_stream:
@@ -363,4 +374,9 @@ Do not use terminal-style box drawing characters — use plain text headers inst
             result = self._run_stage(script_name)
             yield f"{result}\n", i
 
-        yield "\n\n---\n\nPIPELINE COMPLETE. All outputs written to outputs/\n", len(STAGE_SCRIPTS)
+        # Phase 3 — Save run to memory
+        run_id = self.memory.extract_and_save(goal=goal, source_type=source_type)
+        yield (
+            f"\n\n---\n\nPIPELINE COMPLETE. All outputs written to outputs/\n"
+            f"Memory updated — run saved as [{run_id}]\n"
+        ), len(STAGE_SCRIPTS)

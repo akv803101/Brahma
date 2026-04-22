@@ -4,6 +4,8 @@
 
 Brahma is an autonomous ML super-agent powered by the Claude API. You describe a business problem in plain English, point it at your data, and Brahma runs the full machine learning pipeline — from raw ingestion to a deployed, validated model — through a live Streamlit web UI. No code required.
 
+Brahma gets smarter with every run. A built-in memory layer captures the best model and metrics from each completed pipeline and feeds them back into Claude's context the next time you run a similar problem — so algorithm selection and hyperparameter starting points improve automatically over time.
+
 ---
 
 ## Table of Contents
@@ -14,6 +16,7 @@ Brahma is an autonomous ML super-agent powered by the Claude API. You describe a
 - [Pipeline Flow](#pipeline-flow)
 - [How to Activate](#how-to-activate)
 - [Pipeline Stages](#pipeline-stages)
+- [Memory Layer](#memory-layer)
 - [Supported Problem Types](#supported-problem-types)
 - [Supported Data Sources](#supported-data-sources)
 - [Project Structure](#project-structure)
@@ -38,6 +41,7 @@ Brahma is a **web-deployed ML super-agent** — a Streamlit frontend backed by a
 - Hyperparameter tuning (Optuna), ensembling, cross-validation, SHAP explainability
 - UAT testing and deployment packaging
 - Downloadable models, charts, and data outputs directly from the browser
+- **Persistent memory** — every run is stored locally; past results inform future pipeline decisions
 
 ---
 
@@ -61,7 +65,12 @@ Brahma is a **web-deployed ML super-agent** — a Streamlit frontend backed by a
 │         │              │   skills/*.md   │                      │
 │         │              └────────┬────────┘                      │
 │         │                       │                               │
-│         │                       │ API call                      │
+│         │              ┌─────────────────┐                      │
+│         │              │ brahma_memory   │◀── past run results  │
+│         │              │     .py         │──▶ injected into     │
+│         │              │  SQLite store   │    system prompt     │
+│         │              └────────┬────────┘                      │
+│         │                       │ API call + memory context     │
 │         │                       ▼                               │
 │         │              ┌─────────────────┐                      │
 │         │              │  Claude API     │                      │
@@ -77,8 +86,8 @@ Brahma is a **web-deployed ML super-agent** — a Streamlit frontend backed by a
 │         ▼                       ▼                               │
 │  ┌──────────────────────────────────────┐                       │
 │  │           outputs/                   │                       │
-│  │  charts/  models/  data/             │                       │
-│  └──────────────────────────────────────┘                       │
+│  │  charts/  models/  data/             │──▶ leaderboard.csv    │
+│  └──────────────────────────────────────┘    saved to memory   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -93,9 +102,10 @@ flowchart TD
     C --> D[Fill connection credentials]
     D --> E{{"⚡ WAKE UP BRAHMA button"}}
     E --> F[brahma_engine loads CLAUDE.md\nagents/*.md + skills/*.md]
-    F --> G[Builds system prompt]
+    F --> MEM[brahma_memory queries\npast similar runs]
+    MEM --> G[Builds memory-augmented\nsystem prompt]
     G --> H[Injects connection code\ninto stage scripts]
-    H --> I[Calls Claude API\nwith goal + data source]
+    H --> I[Calls Claude API\nwith goal + memory context]
     I --> J[Claude streams understanding\n+ confirmation]
     J --> K{Problem Classification}
     K -->|predict/churn/fraud| L[Supervised · Classification]
@@ -105,7 +115,8 @@ flowchart TD
     L & M & N & O --> P[Route to specialist agent]
     P --> Q[Run Stage Pipeline]
     Q --> R[Stream output to UI\nUpdate stage tracker]
-    R --> S[Outputs ready in browser\nDownload models / charts / data]
+    R --> SAVE[Save best model + metrics\nto brahma_memory.db]
+    SAVE --> S[Outputs ready in browser\nDownload models / charts / data]
 ```
 
 ---
@@ -165,6 +176,40 @@ Brahma collects your goal and data source, echoes its understanding, and **waits
 
 ---
 
+## Memory Layer
+
+Brahma maintains a local SQLite database (`brahma_memory.db`) that grows with every completed pipeline run. This is what makes Brahma progressively smarter rather than starting from scratch each time.
+
+### How it works
+
+| Step | What happens |
+|------|-------------|
+| **Before Claude call** | `BrahmaMemory.format_for_prompt(goal)` finds past runs with similar goals using keyword matching, then prepends them to Claude's system prompt |
+| **Claude receives** | Bullet points like `[2026-04-22] "Predict churn" \| best_model=XGBoost_tuned \| auc_val=0.9878, f1_val=0.8850` |
+| **Claude uses this to** | Start with proven algorithms, set realistic metric expectations, skip approaches that underperformed |
+| **After pipeline** | `extract_and_save()` reads `outputs/data/leaderboard.csv`, finds the best non-dummy model, and stores goal + source + model + metrics with a timestamp |
+
+### What gets stored
+
+```
+id           — short UUID (e.g. "a3f2b1c9")
+timestamp    — ISO 8601 UTC
+goal         — plain English goal string
+source_type  — file / postgresql / snowflake / etc.
+best_model   — e.g. "XGBoost_tuned"
+metrics      — { auc_val, f1_val, recall_val, precision_val }
+```
+
+### Memory sidebar
+
+The Streamlit UI shows a live **Memory** sidebar listing all past runs with expandable cards. Each card shows the goal, source type, best model, and all captured metrics.
+
+### Storage
+
+`brahma_memory.db` is a local SQLite file — zero infrastructure required. It is excluded from git (`.gitignore`) so each deployment starts with its own clean memory that accumulates over time.
+
+---
+
 ## Supported Problem Types
 
 ```mermaid
@@ -207,9 +252,15 @@ The engine auto-generates the correct connection code for whichever source is se
 Brahma/
 │
 ├── app.py                       # Streamlit web UI — goal form, data source selector,
-│                                #   credential forms, stage tracker, output downloads
-├── brahma_engine.py             # Core engine — loads .md files, builds system prompt,
-│                                #   injects connection code, calls Claude API, runs stages
+│                                #   credential forms, stage tracker, memory sidebar,
+│                                #   output downloads
+├── brahma_engine.py             # Core engine — loads .md files, builds memory-augmented
+│                                #   system prompt, injects connection code, calls Claude
+│                                #   API, runs stages, saves run to memory
+├── brahma_memory.py             # Memory layer — SQLite store for past run results;
+│                                #   similarity search, prompt formatting, auto-extraction
+│                                #   from leaderboard.csv after each pipeline
+├── brahma_memory.db             # Local SQLite database (git-ignored, grows over time)
 ├── requirements.txt             # All dependencies incl. cloud connectors
 ├── DEPLOY_README.md             # Step-by-step Streamlit Cloud deployment guide
 │
@@ -309,6 +360,8 @@ Handles datasets with partial labels using label propagation and self-training.
 | Leaderboard | `outputs/data/leaderboard.csv` | All model scores ranked by primary metric |
 
 All outputs are downloadable directly from the Streamlit UI after the pipeline completes.
+
+After the pipeline finishes, Brahma automatically reads `leaderboard.csv`, extracts the best model and its metrics, and saves them to `brahma_memory.db`. The run ID is shown in the pipeline completion banner.
 
 ---
 
