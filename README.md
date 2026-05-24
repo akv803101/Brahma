@@ -6,6 +6,8 @@ Brahma is an autonomous ML super-agent powered by the Claude API. You describe a
 
 Brahma gets smarter with every run. A built-in memory layer captures the best model and metrics from each completed pipeline and feeds them back into Claude's context the next time you run a similar problem — so algorithm selection and hyperparameter starting points improve automatically over time.
 
+Brahma is resilient to API rate limits. If Anthropic returns a rate limit error, it automatically switches to Groq (Llama 3.3 70B) mid-stream and continues without interruption — no user action required.
+
 ---
 
 ## Table of Contents
@@ -17,6 +19,7 @@ Brahma gets smarter with every run. A built-in memory layer captures the best mo
 - [How to Activate](#how-to-activate)
 - [Pipeline Stages](#pipeline-stages)
 - [Memory Layer](#memory-layer)
+- [AI Providers & Fallback](#ai-providers--fallback)
 - [Supported Problem Types](#supported-problem-types)
 - [Supported Data Sources](#supported-data-sources)
 - [Project Structure](#project-structure)
@@ -73,10 +76,16 @@ Brahma is a **web-deployed ML super-agent** — a Streamlit frontend backed by a
 │         │                       │ API call + memory context     │
 │         │                       ▼                               │
 │         │              ┌─────────────────┐                      │
-│         │              │  Claude API     │                      │
-│         │              │  (Anthropic)    │                      │
-│         │              └────────┬────────┘                      │
-│         │                       │ Streamed response             │
+│         │              │  Claude API     │ RateLimitError?      │
+│         │              │  (Anthropic)    │──────────────────┐   │
+│         │              └────────┬────────┘                  │   │
+│         │                       │                           ▼   │
+│         │                       │              ┌────────────────┐│
+│         │                       │              │   Groq API     ││
+│         │                       │              │ Llama 3.3 70B  ││
+│         │                       │              └───────┬────────┘│
+│         │                       │ Streamed response    │         │
+│         │                       ▼◀────────────────────┘         │
 │         │                       ▼                               │
 │         │              ┌─────────────────┐                      │
 │         │              │  Stage Scripts  │                      │
@@ -106,7 +115,10 @@ flowchart TD
     MEM --> G[Builds memory-augmented\nsystem prompt]
     G --> H[Injects connection code\ninto stage scripts]
     H --> I[Calls Claude API\nwith goal + memory context]
-    I --> J[Claude streams understanding\n+ confirmation]
+    I --> RL{Rate limit?}
+    RL -->|No| J[Claude streams understanding\n+ confirmation]
+    RL -->|Yes — RateLimitError| GR[Switch to Groq\nLlama 3.3 70B]
+    GR --> J
     J --> K{Problem Classification}
     K -->|predict/churn/fraud| L[Supervised · Classification]
     K -->|forecast/estimate| M[Supervised · Regression]
@@ -207,6 +219,36 @@ The Streamlit UI shows a live **Memory** sidebar listing all past runs with expa
 ### Storage
 
 `brahma_memory.db` is a local SQLite file — zero infrastructure required. It is excluded from git (`.gitignore`) so each deployment starts with its own clean memory that accumulates over time.
+
+---
+
+## AI Providers & Fallback
+
+Brahma uses **Claude (Anthropic)** as its primary reasoning engine. When Anthropic returns a rate limit error (`429`), Brahma automatically falls back to **Groq (Llama 3.3 70B)** mid-stream — the user sees a one-line notice and the pipeline continues uninterrupted.
+
+| Provider | Model | Role | Required |
+|----------|-------|------|----------|
+| Anthropic | `claude-sonnet-4-6` | Primary — goal confirmation, routing, orchestration | Yes |
+| Groq | `llama-3.3-70b-versatile` | Fallback — activates automatically on rate limit | Optional |
+
+### How the fallback works
+
+```
+Anthropic call ──▶ RateLimitError?
+                        │ No  ──▶ stream normally
+                        │ Yes ──▶ print notice ──▶ Groq stream picks up from same prompt
+```
+
+The fallback is **silent by default** — if no `GROQ_API_KEY` is set and a rate limit is hit, Brahma raises a clear error message asking you to add the key. No crashes, no silent failures.
+
+### Setting up Groq
+
+1. Get a free API key at [console.groq.com](https://console.groq.com)
+2. Add it to your Streamlit secrets:
+
+```toml
+GROQ_API_KEY = "gsk_..."
+```
 
 ---
 
@@ -375,6 +417,9 @@ After the pipeline finishes, Brahma automatically reads `leaderboard.csv`, extra
 4. Go to **Settings → Secrets** and add:
 ```toml
 ANTHROPIC_API_KEY = "sk-ant-your-key-here"
+
+# Optional — enables automatic Groq fallback on Anthropic rate limits
+GROQ_API_KEY = "gsk_your-key-here"
 ```
 5. Click **Deploy** — live at `brahma.streamlit.app`
 
@@ -383,6 +428,7 @@ ANTHROPIC_API_KEY = "sk-ant-your-key-here"
 ```bash
 pip install -r requirements.txt
 export ANTHROPIC_API_KEY=sk-ant-your-key-here
+export GROQ_API_KEY=gsk_your-key-here   # optional — enables rate limit fallback
 streamlit run app.py
 # Opens at http://localhost:8501
 ```
@@ -463,6 +509,8 @@ Common errors and fixes:
 | `Missing API Key` | `ANTHROPIC_API_KEY` not set | Add to Streamlit Cloud Secrets |
 | `Invalid API Key` | Wrong or revoked key | Verify at console.anthropic.com |
 | `Credit balance too low` | Anthropic account out of credits | Add credits at Plans & Billing |
+| `Rate limit hit (no Groq key)` | Anthropic rate limit + no `GROQ_API_KEY` | Add `GROQ_API_KEY` to secrets — fallback activates automatically |
+| `Rate limit hit (Groq active)` | Anthropic rate limit, Groq key present | Handled silently — Brahma switches to Groq and continues |
 | `File not found` | Wrong file path | Check path and re-upload |
 
 ---
@@ -475,7 +523,7 @@ Install all dependencies:
 pip install -r requirements.txt
 ```
 
-Key packages: `streamlit`, `anthropic`, `pandas`, `numpy`, `scikit-learn`, `xgboost`, `optuna`, `shap`, `snowflake-connector-python`, `google-cloud-bigquery`, `google-cloud-storage`, `boto3`, `azure-storage-blob`
+Key packages: `streamlit`, `anthropic`, `groq`, `pandas`, `numpy`, `scikit-learn`, `xgboost`, `optuna`, `shap`, `snowflake-connector-python`, `google-cloud-bigquery`, `google-cloud-storage`, `boto3`, `azure-storage-blob`
 
 ---
 
