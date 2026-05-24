@@ -2,7 +2,13 @@ import os
 import json
 import importlib.util
 import anthropic
+try:
+    from groq import Groq
+except ImportError:
+    Groq = None
 from brahma_memory import BrahmaMemory
+
+GROQ_FALLBACK_MODEL = "llama-3.3-70b-versatile"
 
 SKILLS_DIR  = "skills"
 AGENTS_DIR  = "agents"
@@ -31,6 +37,10 @@ class BrahmaEngine:
                 "[secrets]\nANTHROPIC_API_KEY = 'sk-ant-...'"
             )
         self.client = anthropic.Anthropic(api_key=api_key)
+
+        groq_key = os.environ.get("GROQ_API_KEY") or os.environ.get("groq_api_key")
+        self.groq_client = Groq(api_key=groq_key) if (Groq and groq_key) else None
+
         self.memory = BrahmaMemory()
         self._base_system_prompt = self._build_system_prompt()
 
@@ -357,14 +367,36 @@ Do not use terminal-style box drawing characters — use plain text headers inst
 
         # Phase 1 — Brahma's understanding + confirmation (streamed, memory-augmented)
         system_prompt = self._build_memory_prompt(goal)
-        with self.client.messages.stream(
-            model="claude-sonnet-4-6",
-            max_tokens=2000,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_message}]
-        ) as stream:
-            for text in stream.text_stream:
-                yield text, -1
+        try:
+            with self.client.messages.stream(
+                model="claude-sonnet-4-6",
+                max_tokens=2000,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_message}]
+            ) as stream:
+                for text in stream.text_stream:
+                    yield text, -1
+
+        except anthropic.RateLimitError:
+            if not self.groq_client:
+                raise RuntimeError(
+                    "Anthropic rate limit hit and no GROQ_API_KEY is set. "
+                    "Add GROQ_API_KEY to your Streamlit secrets to enable the Groq fallback."
+                )
+            yield "\n⚡ Anthropic rate limit reached — switching to Groq (Llama 3.3 70B)...\n\n", -1
+            groq_stream = self.groq_client.chat.completions.create(
+                model=GROQ_FALLBACK_MODEL,
+                max_tokens=2000,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_message},
+                ],
+                stream=True,
+            )
+            for chunk in groq_stream:
+                text = chunk.choices[0].delta.content
+                if text:
+                    yield text, -1
 
         yield "\n\n---\n\n", -1
 
