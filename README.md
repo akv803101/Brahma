@@ -183,8 +183,10 @@ Brahma collects your goal and data source, echoes its understanding, and **waits
 | **Stage 9** | `stage9_ensemble.py` | Ensembling — stacking, voting, and blending comparison |
 | **Stage 10** | `stage10_uat.py` | User Acceptance Testing — prediction checks, schema validation, edge cases |
 | **Stage 11** | `stage11_deploy.py` | Deployment Packaging — serialised model, scaler, metadata bundle |
+| **Stage 13** | `stage13_slides.py` | Slide Deck Export — 10-slide executive presentation via Gamma API |
 
 > Stages 1, 2, and 5 are orchestration and routing — handled by the agent system, not standalone scripts.
+> Stage 13 requires `GAMMA_API_KEY`. It skips gracefully if the key is not set.
 
 ---
 
@@ -326,7 +328,8 @@ Brahma/
 │   ├── ensembling.md
 │   ├── deployment_tester.md
 │   ├── uat_checklist.md
-│   └── visualization_style.md
+│   ├── visualization_style.md
+│   └── slide_deck_builder.md    # Stage 13 — Gamma slide spec
 │
 ├── stage3_eda.py
 ├── stage4_features.py
@@ -336,6 +339,7 @@ Brahma/
 ├── stage9_ensemble.py
 ├── stage10_uat.py
 ├── stage11_deploy.py
+├── stage13_slides.py            # Stage 13 — Gamma API slide deck builder
 │
 ├── dashboard.py                 # Local pipeline progress dashboard
 ├── data/                        # Input data
@@ -347,7 +351,9 @@ Brahma/
     │   ├── validation/
     │   └── ensembling/
     ├── models/                  # .pkl model files
-    └── data/                    # .parquet intermediate files + leaderboard.csv
+    ├── data/                    # .parquet intermediate files + leaderboard.csv
+    └── decks/
+        └── deck_info.json       # Gamma deck URL + generation metadata
 ```
 
 ---
@@ -384,6 +390,7 @@ Handles datasets with partial labels using label propagation and self-training.
 | `deployment_tester` | Validates deployment package before sign-off |
 | `uat_checklist` | Schema checks, prediction sanity, edge case assertions |
 | `visualization_style` | Consistent chart styling across all outputs |
+| `slide_deck_builder` | 10-slide executive deck via Gamma API — reads leaderboard + metrics, builds prompt, polls for completion |
 
 ---
 
@@ -400,6 +407,7 @@ Handles datasets with partial labels using label propagation and self-training.
 | Deployment package | `outputs/models/deployment_package.pkl` | Production bundle: model + scaler + metadata |
 | Intermediate data | `outputs/data/` | Preprocessed and feature-engineered `.parquet` files |
 | Leaderboard | `outputs/data/leaderboard.csv` | All model scores ranked by primary metric |
+| Slide deck | `outputs/decks/deck_info.json` | Gamma deck URL + generation metadata (Stage 13) |
 
 All outputs are downloadable directly from the Streamlit UI after the pipeline completes.
 
@@ -420,6 +428,9 @@ ANTHROPIC_API_KEY = "sk-ant-your-key-here"
 
 # Optional — enables automatic Groq fallback on Anthropic rate limits
 GROQ_API_KEY = "gsk_your-key-here"
+
+# Optional — enables Stage 13 slide deck export via Gamma
+GAMMA_API_KEY = "your-gamma-api-key"
 ```
 5. Click **Deploy** — live at `brahma.streamlit.app`
 
@@ -428,7 +439,8 @@ GROQ_API_KEY = "gsk_your-key-here"
 ```bash
 pip install -r requirements.txt
 export ANTHROPIC_API_KEY=sk-ant-your-key-here
-export GROQ_API_KEY=gsk_your-key-here   # optional — enables rate limit fallback
+export GROQ_API_KEY=gsk_your-key-here    # optional — enables rate limit fallback
+export GAMMA_API_KEY=your-gamma-api-key  # optional — enables Stage 13 slide export
 streamlit run app.py
 # Opens at http://localhost:8501
 ```
@@ -511,6 +523,9 @@ Common errors and fixes:
 | `Credit balance too low` | Anthropic account out of credits | Add credits at Plans & Billing |
 | `Rate limit hit (no Groq key)` | Anthropic rate limit + no `GROQ_API_KEY` | Add `GROQ_API_KEY` to secrets — fallback activates automatically |
 | `Rate limit hit (Groq active)` | Anthropic rate limit, Groq key present | Handled silently — Brahma switches to Groq and continues |
+| `Stage 13 skipped` | `GAMMA_API_KEY` not set | Add `GAMMA_API_KEY` to secrets — get a key at gamma.app/api |
+| `Gamma API error (4xx)` | Invalid or expired Gamma key | Verify key at gamma.app settings |
+| `Gamma timeout` | Deck generation took > 120s | Check `outputs/decks/deck_info.json` for `generation_id`, open gamma.app manually |
 | `File not found` | Wrong file path | Check path and re-upload |
 
 ---

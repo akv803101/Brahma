@@ -10,6 +10,17 @@ import matplotlib.pyplot as plt
 import pickle, json, time
 from PIL import Image
 
+def _load_deck_url() -> str:
+    try:
+        with open('outputs/decks/deck_info.json') as f:
+            info = json.load(f)
+        url = info.get('url')
+        if url:
+            return f"[Open deck]({url})"
+        return f"status: {info.get('status', 'unknown')}"
+    except FileNotFoundError:
+        return "not yet generated"
+
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Brahma — Churn Intelligence",
@@ -602,7 +613,7 @@ with tabs[6]:
         ("10", "UAT",                     "DONE", "6/6 checks PASS — APPROVED FOR DEPLOYMENT"),
         ("11", "Deployment Testing",      "DONE", "predict_brahma() ready, drift detection armed, 179K pred/sec"),
         ("12", "Dashboard (Streamlit)",   "DONE", "You are here"),
-        ("13", "Slide Deck (Gamma)",      "DONE", "gamma.app/docs/1j1jcs5fwzze3mf"),
+        ("13", "Slide Deck (Gamma)",      "DONE", _load_deck_url()),
     ]
 
     for num, name, status, detail in stages:
@@ -620,8 +631,8 @@ with tabs[6]:
     - `outputs/data/drift_config.json` — drift monitoring config
     - `outputs/data/features_engineered.parquet` — final dataset
     - `outputs/charts/` — 15 charts across EDA, training, evaluation, validation, ensembling
-    - Slide deck: [gamma.app/docs/1j1jcs5fwzze3mf](https://gamma.app/docs/1j1jcs5fwzze3mf)
     """)
+    st.markdown(f"    - Slide deck: {_load_deck_url()}")
 
     st.markdown('<div class="section-header">Key Finding & Recommendation</div>',
                 unsafe_allow_html=True)

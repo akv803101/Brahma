@@ -564,23 +564,31 @@ pipeline_state["stages_completed"].append("Stage 12: SKIPPED (coming soon)")
 
 ---
 
-## Stage 13 — Slide Deck Builder (Stub)
+## Stage 13 — Slide Deck Builder (Gamma)
 
 ```
 [Brahma] Entering Stage 13 of 13: SLIDE DECK BUILDER
 ```
 
-```python
-# Slide deck builder — outputs PowerPoint/PDF executive summary
-# Slides: 1 cover, 1 data overview, 3 key EDA findings,
-#         1 model selection rationale, 1 performance slide,
-#         1 SHAP interpretation, 1 recommendation
+Calls the Gamma API to generate a 10-slide executive presentation from the completed
+pipeline outputs. See `skills/slide_deck_builder.md` for the full spec.
 
-# TO BE IMPLEMENTED: skills/slide_deck_builder.md
-print("  Slide deck builder — coming in next release.")
-print("  Skipping Stage 13. All charts are available in outputs/charts/")
-pipeline_state["stages_completed"].append("Stage 13: SKIPPED (coming soon)")
-```
+Slide structure:
+1. Cover — pipeline title + goal
+2. Executive Summary — best model, chart count, deployment status
+3. The Business Goal — plain-English restatement
+4. The Data — source type, rows, features engineered
+5. Key EDA Finding — top pattern from exploration
+6. Model Selection — comparison table with all models tried
+7. Model Performance — big AUC number + F1, Recall, Precision
+8. Model Reliability — cross-validation results, overfitting gap
+9. Recommendations — 3 specific, actionable business steps
+10. Next Steps & Deployment — deployment package, drift monitoring, CTA
+
+Output saved to: `outputs/decks/deck_info.json`
+Deck URL shown in pipeline completion banner and Streamlit UI.
+
+Requires `GAMMA_API_KEY` in Streamlit secrets. Skips gracefully if not set.
 
 ---
 
@@ -619,8 +627,18 @@ def print_completion_banner(state: dict):
     print(f"║  Charts  : outputs/charts/  ({n_charts} files){'':<26}  ║")
     print(f"║  Models  : outputs/models/  ({n_models} files){'':<26}  ║")
     print(f"║  Data    : outputs/data/    ({n_data} files){'':<26}  ║")
-    print("""║  Dashboard: outputs/dashboard/  (Stage 12 — coming soon)    ║
-║  Deck    : outputs/decks/       (Stage 13 — coming soon)    ║
+    print("""║  Dashboard: outputs/dashboard/  (Stage 12 — coming soon)    ║""")
+
+    deck_url = None
+    if os.path.exists('outputs/decks/deck_info.json'):
+        with open('outputs/decks/deck_info.json') as f:
+            deck_info = json.load(f)
+            deck_url = deck_info.get('url')
+    if deck_url:
+        print(f"║  Deck    : {deck_url[:58]:<58}  ║")
+    else:
+        print("""║  Deck    : outputs/decks/deck_info.json                      ║""")
+    print("""
 ╠══════════════════════════════════════════════════════════════╣
 ║  KEY FINDING                                                 ║""")
     # Key finding — derived from eval results and top SHAP feature

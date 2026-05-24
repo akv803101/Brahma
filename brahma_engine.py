@@ -23,6 +23,7 @@ STAGE_SCRIPTS = [
     ("stage9_ensemble",  "Ensemble"),
     ("stage10_uat",      "UAT"),
     ("stage11_deploy",   "Deploy"),
+    ("stage13_slides",   "Slides"),
 ]
 
 
